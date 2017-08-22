@@ -8,11 +8,17 @@
 #
 # Trigger Type: Change Triggered
 # Scope of Changes: S3:Bucket
+# Requires permission to publish to coresponding SNS topic if configured below
 
 
 import json
 import boto3
 
+sns = boto3.client('sns')
+
+# configure a topic ARN to get evaluation results published via SNS
+# you can use that to trigger actions (e.g. delete non-compliant resources)
+SNS_TOPIC = 'SNS_TOPIC_ARN'
 
 APPLICABLE_RESOURCES = ["AWS::S3::Bucket"]
 
@@ -108,3 +114,10 @@ def lambda_handler(event, context):
         ],
         ResultToken=result_token
     )
+    if evaluation["compliance_type"] == "NON_COMPLIANT":
+        response = sns.publish(
+            TopicArn=SNS_TOPIC,
+            Message="Public access granted on: %s" % configuration_item["resourceId"],
+            Subject='Public Access Granted to S3 Bucket',
+            MessageStructure='Complaint'
+            )
